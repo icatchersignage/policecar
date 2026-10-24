@@ -52,6 +52,17 @@ function policeDrivePattern() {
     }
 }
 
+function ultrasensorAlert() {
+    let distance = TPBot.sonarReturn(TPBot.SonarUnit.Centimeters)
+    if (distance < 15) {
+        music.playTone(440, 120)
+        TPBot.setWheels(-30, -30)
+        basic.pause(500)
+        TPBot.setWheels(30, -30)
+        basic.pause(500)
+    }
+}
+
 basic.forever(function () {
     if (input.buttonIsPressed(Button.A) && !policeMode) {
         startPoliceCar()
@@ -67,6 +78,7 @@ basic.forever(function () {
         }
         policeLights()
         policeDrivePattern()
+        ultrasensorAlert()
         basic.pause(160)
     } else {
         basic.pause(20)
