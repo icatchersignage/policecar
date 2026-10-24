@@ -3,9 +3,9 @@ let sirenStep = 0
 
 function startPoliceCar() {
     policeMode = true
-    music.setVolume(90)
+    sirenStep = 0
+    music.setVolume(120)
     TPBot.setTravelSpeed(TPBot.DriveDirection.Forward, 35)
-    TPBot.setWheels(30, 30)
 }
 
 function stopPoliceCar() {
@@ -16,50 +16,59 @@ function stopPoliceCar() {
     basic.clearScreen()
 }
 
-function policeLights() {
-    sirenStep += 1
+function playGermanSiren() {
+    // Deutsches Martins-Horn (DIN 14610):
+    // Wechselt exakt zwischen a' (440 Hz) und d'' (587 Hz)
+    if (sirenStep % 2 === 0) {
+        music.ringTone(440) // "Ta" (Tiefer Ton: a')
+    } else {
+        music.ringTone(587) // "Tü" (Hoher Ton: d'')
+    }
+}
 
-    if (sirenStep % 2 == 0) {
-        TPBot.headlightColor(0xff0000)
+function policeLights() {
+    // Deutsche Polizeifahrzeuge nutzen reines Blaulicht (Doppelblitz / Wechselblitz)
+    if (sirenStep % 2 === 0) {
+        TPBot.headlightColor(0x0000ff) // Blau Links
         basic.showLeds(`
-            .#.#.
-            .#.#.
-            ##.##
-            .#.#.
-            .#.#.
+            # . . . .
+            # # . . .
+            # . # . .
+            # # . . .
+            # . . . .
         `)
     } else {
-        TPBot.headlightColor(0x0000ff)
+        TPBot.headlightColor(0x0000ff) // Blau Rechts
         basic.showLeds(`
-            #.#..
-            #.#..
-            ##.##
-            #.#..
-            #.#..
+            . . . . #
+            . . . # #
+            . . # . #
+            . . . # #
+            . . . . #
         `)
     }
 }
 
 function policeDrivePattern() {
-    if (sirenStep % 4 == 0) {
-        TPBot.setWheels(20, 35)
-    } else if (sirenStep % 4 == 1) {
-        TPBot.setWheels(35, 20)
-    } else if (sirenStep % 4 == 2) {
-        TPBot.setWheels(25, 35)
-    } else {
-        TPBot.setWheels(35, 25)
-    }
+    // Dynamische Kurvenfahrten im Einsatz
+    const speeds: number[][] = [
+        [20, 35],
+        [35, 20],
+        [25, 35],
+        [35, 25]
+    ]
+    let currentSpeed = speeds[sirenStep % speeds.length]
+    TPBot.setWheels(currentSpeed[0], currentSpeed[1])
 }
 
 function ultrasensorAlert() {
     let distance = TPBot.sonarReturn(TPBot.SonarUnit.Centimeters)
-    if (distance < 15) {
-        music.playTone(440, 120)
-        TPBot.setWheels(-30, -30)
-        basic.pause(500)
+    // Hinderniserkennung
+    if (distance > 0 && distance < 25) {
+        TPBot.setWheels(-25, -25)
+        basic.pause(300)
         TPBot.setWheels(30, -30)
-        basic.pause(500)
+        basic.pause(400)
     }
 }
 
@@ -71,16 +80,15 @@ basic.forever(function () {
     }
 
     if (policeMode) {
-        if (sirenStep % 2 == 0) {
-            music.playTone(660, 120)
-        } else {
-            music.playTone(440, 120)
-        }
+        playGermanSiren()
         policeLights()
         policeDrivePattern()
         ultrasensorAlert()
-        basic.pause(160)
+
+        sirenStep += 1
+        // Pause bestimmt das Tempo des "Ta-Tü"-Wechsels (ca. 350-400ms pro Ton entspricht dem realen Horn)
+        basic.pause(380)
     } else {
-        basic.pause(20)
+        basic.pause(30)
     }
 })
